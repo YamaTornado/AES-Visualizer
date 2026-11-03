@@ -218,20 +218,46 @@ def run_gui():
     root = tk.Tk()
     root.title("AES-128 Runden-Visualisierung")
     root.configure(bg=BG)
-    root.minsize(1000, 920)
+    sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
+    w, h = min(1000, sw - 40), min(920, sh - 100)
+    root.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 2 - 20)}")
+    root.minsize(320, 240)
 
     style = ttk.Style()
     style.theme_use("clam")
     style.configure("TButton", padding=6)
 
-    mono = ("Consolas", 16, "bold")
-    small = ("Consolas", 10)
-    head = ("Segoe UI", 12, "bold")
+    import tkinter.font as tkfont
+    FONTS = {}   # name -> (Font, Basisgroesse)
+
+    def mkfont(name, family, size, weight="normal", slant="roman"):
+        f = tkfont.Font(family=family, size=-round(size * 4 / 3), weight=weight, slant=slant)
+        FONTS[name] = (f, size)
+        return f
+
+    mono = mkfont("mono", "Consolas", 16, "bold")
+    small = mkfont("small", "Consolas", 10)
+    head = mkfont("head", "Segoe UI", 12, "bold")
+    f_made = mkfont("made", "Segoe UI", 8, slant="italic")
+    f_bytes = mkfont("bytes", "Consolas", 9)
+    f_title = mkfont("title", "Segoe UI", 15, "bold")
+    f_arrow = mkfont("arrow", "Segoe UI", 28)
+    f_out = mkfont("out", "Consolas", 11, "bold")
+    f_ui = mkfont("ui", "Segoe UI", 9)
+    for nm in ("TkDefaultFont", "TkTextFont"):
+        FONTS[nm] = (tkfont.nametofont(nm), 9)
+    style.configure("TButton", font=f_ui)
+
+    # --- Steuerleiste immer unten sichtbar, Inhalt scrollbar
+    bar = tk.Frame(root, bg=BG)
+    bar.pack(side="bottom", pady=(4, 8))
+    page = tk.Frame(root, bg=BG)
+    page.pack(side="top", fill="both", expand=True)
 
     # --- Eingaben
-    tk.Label(root, text="made by yama", bg=BG, fg="#a0a4b0",
-             font=("Segoe UI", 8, "italic")).pack(anchor="e", padx=12, pady=(6, 0))
-    top = tk.Frame(root, bg=BG)
+    tk.Label(page, text="made by yama", bg=BG, fg="#a0a4b0",
+             font=f_made).pack(anchor="e", padx=12, pady=(6, 0))
+    top = tk.Frame(page, bg=BG)
     top.pack(fill="x", padx=12, pady=(12, 4))
     mode_var = tk.StringVar(value="text")
     pt_label = tk.Label(top, bg=BG, fg=FG)
@@ -245,7 +271,7 @@ def run_gui():
     modes = tk.Frame(top, bg=BG)
     modes.grid(row=0, column=2, rowspan=2, padx=12)
     bytes_var = tk.StringVar()
-    tk.Label(top, textvariable=bytes_var, bg=BG, fg="#555566", font=("Consolas", 9),
+    tk.Label(top, textvariable=bytes_var, bg=BG, fg="#555566", font=f_bytes,
              justify="left").grid(row=2, column=0, columnspan=3, sticky="w", pady=(2, 0))
 
     def set_labels():
@@ -276,12 +302,13 @@ def run_gui():
     set_labels()
 
     title_var = tk.StringVar()
-    tk.Label(root, textvariable=title_var, bg=BG, fg=FG, font=("Segoe UI", 15, "bold")).pack(pady=(8, 0))
+    tk.Label(page, textvariable=title_var, bg=BG, fg=FG, font=f_title).pack(pady=(8, 0))
     info_var = tk.StringVar()
-    tk.Label(root, textvariable=info_var, bg=BG, fg="#555566", wraplength=840, justify="center").pack(pady=(0, 6))
+    info_lbl = tk.Label(page, textvariable=info_var, bg=BG, fg="#555566", wraplength=900, justify="center")
+    info_lbl.pack(pady=(0, 6))
 
     # --- Matrizen
-    mid = tk.Frame(root, bg=BG)
+    mid = tk.Frame(page, bg=BG)
     mid.pack(pady=4)
 
     def make_matrix(parent, caption):
@@ -299,22 +326,22 @@ def run_gui():
 
     f_prev, prev_cells = make_matrix(mid, "Vorher")
     f_prev.grid(row=0, column=0, padx=14)
-    tk.Label(mid, text="➜", bg=BG, fg=FG, font=("Segoe UI", 28)).grid(row=0, column=1)
+    tk.Label(mid, text="➜", bg=BG, fg=FG, font=f_arrow).grid(row=0, column=1)
     f_cur, cur_cells = make_matrix(mid, "State (nachher)")
     f_cur.grid(row=0, column=2, padx=14)
-    tk.Label(mid, text="⊕", bg=BG, fg=FG, font=("Segoe UI", 28)).grid(row=0, column=3)
+    tk.Label(mid, text="⊕", bg=BG, fg=FG, font=f_arrow).grid(row=0, column=3)
     f_key, key_cells = make_matrix(mid, "Rundenschluessel")
     f_key.grid(row=0, column=4, padx=14)
 
     # --- Formel des aktuellen Schritts
-    ff = tk.LabelFrame(root, text=" Formel des aktuellen Schritts ", bg=BG, fg=FG)
+    ff = tk.LabelFrame(page, text=" Formel des aktuellen Schritts ", bg=BG, fg=FG)
     ff.pack(padx=12, pady=(8, 0), fill="x")
-    formula_box = tk.Text(ff, height=11, font=("Consolas", 10), bg="#ffffff", fg=FG, relief="flat",
+    formula_box = tk.Text(ff, height=11, font=small, bg="#ffffff", fg=FG, relief="flat",
                           wrap="none", state="disabled")
     formula_box.pack(fill="x", padx=6, pady=4)
 
     # --- Key-Schedule-Tabelle
-    ks =tk.LabelFrame(root, text=" Key-Schedule (Woerter w0..w43, je 4 Bytes) ", bg=BG, fg=FG)
+    ks =tk.LabelFrame(page, text=" Key-Schedule (Woerter w0..w43, je 4 Bytes) ", bg=BG, fg=FG)
     ks.pack(padx=12, pady=8, fill="x")
     ks_labels = []
     tk.Label(ks, text="Runde", bg=BG, fg=FG, font=small).grid(row=0, column=0, padx=4)
@@ -330,7 +357,7 @@ def run_gui():
         ks_labels.append(row)
 
     out_var = tk.StringVar()
-    tk.Label(root, textvariable=out_var, bg=BG, fg="#1a7f37", font=("Consolas", 11, "bold")).pack()
+    tk.Label(page, textvariable=out_var, bg=BG, fg="#1a7f37", font=f_out).pack()
 
     # --- Steuerung
     S = {"steps": [], "w": [], "i": 0, "play": False, "job": None}
@@ -428,8 +455,6 @@ def run_gui():
             play_btn.config(text="⏸ Stopp")
             S["job"] = root.after(120, tick)
 
-    bar = tk.Frame(root, bg=BG)
-    bar.pack(pady=(4, 12))
     ttk.Button(bar, text="Berechnen / Reset", command=lambda: (stop(), load())).pack(side="left", padx=4)
     ttk.Button(bar, text="⏮", width=3, command=lambda: (stop(), goto(0))).pack(side="left", padx=2)
     ttk.Button(bar, text="◀ Zurueck", command=lambda: (stop(), goto(S["i"] - 1))).pack(side="left", padx=2)
@@ -442,6 +467,37 @@ def run_gui():
     root.bind("<Right>", lambda e: (stop(), goto(S["i"] + 1)))
     root.bind("<Left>", lambda e: (stop(), goto(S["i"] - 1)))
     root.bind("<space>", lambda e: toggle_play())
+
+    # --- Automatische Skalierung: alles passt immer ins Fenster (ohne Scrollen)
+    scale = {"v": 1.0, "busy": False}
+
+    def apply_scale(v):
+        scale["v"] = v
+        for f, base in FONTS.values():
+            f.configure(size=-max(5, round(base * 4 / 3 * v)))
+
+    def fit(_event=None):
+        if scale["busy"]:
+            return
+        scale["busy"] = True
+        try:
+            for _ in range(8):
+                root.update_idletasks()
+                W, H = root.winfo_width(), root.winfo_height()
+                info_lbl.config(wraplength=max(200, W - 40))
+                root.update_idletasks()
+                rw = max(page.winfo_reqwidth(), bar.winfo_reqwidth()) + 4
+                rh = page.winfo_reqheight() + bar.winfo_reqheight() + 16
+                f = min(W / rw, H / rh)
+                if 0.985 <= f <= 1.005:
+                    break
+                apply_scale(min(2.5, max(0.3, scale["v"] * f * 0.995)))
+        finally:
+            scale["busy"] = False
+
+    root.bind("<Configure>", lambda e: fit() if e.widget is root else None)
+    root.update_idletasks()
+    fit()
 
     load()
     root.mainloop()
