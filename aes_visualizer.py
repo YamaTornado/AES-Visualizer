@@ -301,14 +301,19 @@ def run_gui():
                    bg=BG, fg=FG, selectcolor=BG, activebackground=BG).pack(anchor="w")
     set_labels()
 
+    body = tk.Frame(page, bg=BG)
+    body.pack(fill="both", expand=True)
+    left = tk.Frame(body, bg=BG)
+    left.pack(side="left", fill="both", expand=True)
+
     title_var = tk.StringVar()
-    tk.Label(page, textvariable=title_var, bg=BG, fg=FG, font=f_title).pack(pady=(8, 0))
+    tk.Label(left, textvariable=title_var, bg=BG, fg=FG, font=f_title).pack(pady=(8, 0))
     info_var = tk.StringVar()
-    info_lbl = tk.Label(page, textvariable=info_var, bg=BG, fg="#555566", wraplength=900, justify="center")
+    info_lbl = tk.Label(left, textvariable=info_var, bg=BG, fg="#555566", wraplength=700, justify="center")
     info_lbl.pack(pady=(0, 6))
 
     # --- Matrizen
-    mid = tk.Frame(page, bg=BG)
+    mid = tk.Frame(left, bg=BG)
     mid.pack(pady=4)
 
     def make_matrix(parent, caption):
@@ -334,15 +339,15 @@ def run_gui():
     f_key.grid(row=0, column=4, padx=14)
 
     # --- Formel des aktuellen Schritts
-    ff = tk.LabelFrame(page, text=" Formel des aktuellen Schritts ", bg=BG, fg=FG)
+    ff = tk.LabelFrame(left, text=" Formel des aktuellen Schritts ", bg=BG, fg=FG)
     ff.pack(padx=12, pady=(8, 0), fill="x")
-    formula_box = tk.Text(ff, height=11, font=small, bg="#ffffff", fg=FG, relief="flat",
+    formula_box = tk.Text(ff, height=8, font=small, bg="#ffffff", fg=FG, relief="flat",
                           wrap="none", state="disabled")
     formula_box.pack(fill="x", padx=6, pady=4)
 
     # --- Key-Schedule-Tabelle
-    ks =tk.LabelFrame(page, text=" Key-Schedule (Woerter w0..w43, je 4 Bytes) ", bg=BG, fg=FG)
-    ks.pack(padx=12, pady=8, fill="x")
+    ks = tk.LabelFrame(body, text=" Key-Schedule (w0..w43) ", bg=BG, fg=FG)
+    ks.pack(side="right", padx=(0, 12), pady=8, anchor="n")
     ks_labels = []
     tk.Label(ks, text="Runde", bg=BG, fg=FG, font=small).grid(row=0, column=0, padx=4)
     for c in range(4):
@@ -351,13 +356,13 @@ def run_gui():
         tk.Label(ks, text=str(rnd), bg=BG, fg=FG, font=small).grid(row=rnd + 1, column=0)
         row = []
         for c in range(4):
-            lb = tk.Label(ks, text="", font=small, bg=CELL, fg=FG, width=14)
+            lb = tk.Label(ks, text="", font=small, bg=CELL, fg=FG, width=9)
             lb.grid(row=rnd + 1, column=c + 1, padx=2, pady=1)
             row.append(lb)
         ks_labels.append(row)
 
     out_var = tk.StringVar()
-    tk.Label(page, textvariable=out_var, bg=BG, fg="#1a7f37", font=f_out).pack()
+    tk.Label(left, textvariable=out_var, bg=BG, fg="#1a7f37", font=f_out).pack()
 
     # --- Steuerung
     S = {"steps": [], "w": [], "i": 0, "play": False, "job": None}
@@ -484,7 +489,7 @@ def run_gui():
             for _ in range(8):
                 root.update_idletasks()
                 W, H = root.winfo_width(), root.winfo_height()
-                info_lbl.config(wraplength=max(200, W - 40))
+                info_lbl.config(wraplength=max(200, int((W - 40) * 0.62)))
                 root.update_idletasks()
                 rw = max(page.winfo_reqwidth(), bar.winfo_reqwidth()) + 4
                 rh = page.winfo_reqheight() + bar.winfo_reqheight() + 16
